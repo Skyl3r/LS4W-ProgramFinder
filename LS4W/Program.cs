@@ -16,7 +16,7 @@ namespace LS4W
     {
         static void Main(string[] args) 
         {
-            List<WindowsProgram> installedPrograms = new List<WindowsProgram>();
+            List<WindowsProgram> installedPrograms = new List<WindowsProgram>(); 
             string registryKey_AppPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
 
             //Get executables
