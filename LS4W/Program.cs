@@ -14,7 +14,7 @@ namespace LS4W
 {
     class Program 
     {
-        static void Main(string[] args)
+        static void Main(string[] args) 
         {
             List<WindowsProgram> installedPrograms = new List<WindowsProgram>();
             string registryKey_AppPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
