@@ -12,7 +12,7 @@ using TsudaKageyu;
 
 namespace LS4W
 {
-    class Program
+    class Program 
     {
         static void Main(string[] args)
         {
