@@ -10,14 +10,18 @@ using System.Reflection;
 using System.Text.Json;
 using System.Globalization;
 using TsudaKageyu;
+using extensionMethods;
 
 namespace LS4W
 {
-    class Program 
+
+    class Program
     {
+
         [STAThreadAttribute]
-        public static void Main(string[] args) 
+        public static void Main(string[] args)
         {
+            bool exportBase64 = true;
 
             AppDomain.CurrentDomain.AssemblyResolve += OnResolveAssembly;
             //App.Main();
@@ -44,55 +48,43 @@ namespace LS4W
                         WindowsProgram app = new WindowsProgram();
                         app.executableLocation = rawLocation.ToString();
                         app.installLocation = rawPath.ToString();
-                        
-                        var iconB64 = "";
-                        if (File.Exists(app.executableLocation))
+                        app.iconPaths = new List<string>();
+
+
+                        if (!File.Exists(app.executableLocation))
+                            continue;
+
+                        string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                        string iconPath = assemblyPath + @"\icons\";
+                        if (!Directory.Exists(iconPath))
                         {
-                            // IconExtractor/IconUtil for .NET
-                            // Copyright (C) 2014 Tsuda Kageyu. All rights reserved.
+                            Directory.CreateDirectory(iconPath);
+                        }
 
-                            // Redistribution and use in source and binary forms, with or without
-                            // modification, are permitted provided that the following conditions
-                            // are met:
+                        IconExtractor ie = new IconExtractor(app.executableLocation);
+                        if (ie.Count == 0) //contains no icons
+                            continue;
 
-                            // 1. Redistributions of source code must retain the above copyright
-                            //     notice, this list of conditions and the following disclaimer.
-                            // 2. Redistributions in binary form must reproduce the above copyright
-                            //     notice, this list of conditions and the following disclaimer in the
-                            //     documentation and/or other materials provided with the distribution.
+                        List<Icon> iconVariations = IconUtil.Split(ie.GetIcon(0)).ToList();
+                        foreach(var (icon, index) in iconVariations.WithIndex()) 
+                        {
+                            string iconExportName = Path.GetFileName(app.executableLocation) + "_" + index + ".png";
+                            Bitmap iconAsBitmap = icon.ToBitmap();
+                            iconAsBitmap.Save(iconPath + iconExportName, ImageFormat.Png);
+                            app.iconPaths.Add(iconPath + iconExportName);
+                        }
 
-                            // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-                            // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-                            // TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-                            // PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
-                            // OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-                            // EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-                            // PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-                            // PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-                            // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-                            // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-                            // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-                            IconExtractor ie = new IconExtractor(app.executableLocation);
-                            if (ie.Count > 0)
+                        if(exportBase64)
+                        {
+                            Icon largestIcon = IconHelper.getLargestInList(iconVariations);
+                            Bitmap iconAsBitmap = largestIcon.ToBitmap();
+                            using (MemoryStream ms = new MemoryStream())
                             {
-                                Icon icon = ie.GetIcon(0);
-                                Icon[] iconVariations = IconUtil.Split(icon);
-                                for (int a = 0; a < iconVariations.Count(); a++)
-                                {
-                                    using (var ms = new MemoryStream())
-                                    {    
-                                        using (var iconAsBitmap = new Bitmap(iconVariations[a].ToBitmap()))
-                                        {
-                                            iconAsBitmap.Save(ms, ImageFormat.Png);
-                                            var tmpIconB64 = Convert.ToBase64String(ms.GetBuffer());
-                                            if (tmpIconB64.Length > iconB64.Length)
-                                                iconB64 = tmpIconB64;
-                                        }
-                                    }
-                                }
+                                iconAsBitmap.Save(ms, ImageFormat.Png);
+                                byte[] iconAsBytes = ms.ToArray();
+                                app.iconB64 = Convert.ToBase64String(iconAsBytes);
                             }
                         }
-                        app.icon = iconB64;
 
                         installedPrograms.Add(app);
                     }
@@ -123,3 +115,4 @@ namespace LS4W
 
     }
 }
+
