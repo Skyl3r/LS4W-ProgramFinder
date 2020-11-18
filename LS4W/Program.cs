@@ -76,7 +76,7 @@ namespace LS4W
 
                         if(exportBase64)
                         {
-                            Icon largestIcon = IconHelper.getLargestInList(iconVariations);
+                            Icon largestIcon = iconVariations.OrderByDescending(icon => icon.Width).First();
                             Bitmap iconAsBitmap = largestIcon.ToBitmap();
                             using (MemoryStream ms = new MemoryStream())
                             {
