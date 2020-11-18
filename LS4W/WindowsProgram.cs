@@ -12,6 +12,6 @@ namespace LS4W
         public string installLocation { get; set; }
         public string publisherName { get; set; }
         public string applicationName { get; set; }
-        public List<string> iconPaths { get; set; }
+        public string icon { get; set; }
     }
 }

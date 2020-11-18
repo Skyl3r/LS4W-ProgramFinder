@@ -36,45 +36,36 @@ namespace LS4W
                         WindowsProgram app = new WindowsProgram();
                         app.executableLocation = rawLocation.ToString();
                         app.installLocation = rawPath.ToString();
+                        
+                        var iconB64 = "";
+                        if (File.Exists(app.executableLocation))
+                        {
+                            IconExtractor ie = new IconExtractor(app.executableLocation);
+                            if (ie.Count > 0)
+                            {
+                                Icon icon = ie.GetIcon(0);
+                                Icon[] iconVariations = IconUtil.Split(icon);
+                                for (int a = 0; a < iconVariations.Count(); a++)
+                                {
+                                    using (var ms = new MemoryStream())
+                                    {    
+                                        using (var iconAsBitmap = new Bitmap(iconVariations[a].ToBitmap()))
+                                        {
+                                            iconAsBitmap.Save(ms, ImageFormat.Png);
+                                            var tmpIconB64 = Convert.ToBase64String(ms.GetBuffer());
+                                            if (tmpIconB64.Length > iconB64.Length)
+                                                iconB64 = tmpIconB64;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        app.icon = iconB64;
+
                         installedPrograms.Add(app);
                     }
                 }
             }
-
-            foreach (WindowsProgram app in installedPrograms)
-            {
-                if (!File.Exists(app.executableLocation))
-                    continue;
-
-                var versionInfo = FileVersionInfo.GetVersionInfo(app.executableLocation);
-                app.applicationName = versionInfo.FileDescription;
-                app.publisherName = versionInfo.CompanyName;
-                app.iconPaths = new List<string>();
-
-                IconExtractor ie = new IconExtractor(app.executableLocation);
-                if (ie.Count == 0)
-                    continue;
-                Icon icon = ie.GetIcon(0);
-                Icon[] iconVariations = IconUtil.Split(icon);
-
-
-                string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                string iconPath = assemblyPath + @"\icons\";
-                if (!Directory.Exists(iconPath))
-                {
-                    Directory.CreateDirectory(iconPath);
-                }
-
-                for (int a = 0; a < iconVariations.Count(); a++)
-                {
-                    string iconExportName = Path.GetFileName(app.executableLocation) + "_" + a + ".png";
-                    Bitmap iconAsBitmap = iconVariations[a].ToBitmap();
-                    iconAsBitmap.Save(iconPath + iconExportName, ImageFormat.Png);
-                    app.iconPaths.Add(iconPath + iconExportName);
-                }
-            }
-
-
 
             string jsonString = JsonSerializer.Serialize(installedPrograms);
             Console.WriteLine(jsonString);
